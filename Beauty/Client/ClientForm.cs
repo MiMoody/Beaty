@@ -295,5 +295,10 @@ namespace Beauty
         {
             new ClientServiceForm(Convert.ToInt32(TableService.SelectedRows[0].Cells["ID"].Value)).ShowDialog();
         }
+
+        private void BtnNearest_Click(object sender, EventArgs e)
+        {
+            new ShowWritesForm().ShowDialog();
+        }
     }
 }

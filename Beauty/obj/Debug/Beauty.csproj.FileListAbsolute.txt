@@ -19,3 +19,4 @@ C:\Users\temch\Desktop\Шарага\4 курс\Бд\Beauty\Beauty\obj\Debug\Beau
 C:\Users\temch\Desktop\Шарага\4 курс\Бд\Beauty\Beauty\obj\Debug\Beauty.AddServiceForm.resources
 C:\Users\temch\Desktop\Шарага\4 курс\Бд\Beauty\Beauty\obj\Debug\Beauty.EditServiceForm.resources
 C:\Users\temch\Desktop\Шарага\4 курс\Бд\Beauty\Beauty\obj\Debug\Beauty.ClientServiceForm.resources
+C:\Users\temch\Desktop\Шарага\4 курс\Бд\Beauty\Beauty\obj\Debug\Beauty.ShowWritesForm.resources
