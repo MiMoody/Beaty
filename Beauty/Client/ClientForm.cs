@@ -213,6 +213,7 @@ namespace Beauty
             list = FilterList(list);
             list = SortList(list);
             list = ConfigureList(list);
+            list = ConfigureData(list);
             list = WriteDiscountCell(list);
             bsource.DataSource = list;
             TableService.DataSource = bsource;
@@ -256,6 +257,26 @@ namespace Beauty
                 UpdateTable();
         }
 
+        public List <Service> ConfigureData(List<Service> list)
+        {
+            List<Service> new_list = new List<Service>();
+            foreach(var item in list)
+            {
+                Service el = new Service
+                {
+                    ID = item.ID,
+                    Title = item.Title,
+                    Cost = Math.Round(item.Cost, 1),
+                    DurationInSeconds = item.DurationInSeconds,
+                    Discount = item.Discount,
+                    Description = item.Description,
+                    MainImagePath = item.MainImagePath,
+                };
+                new_list.Add(el);
+            }
+            return new_list;
+        }
+
         private void TxtSearch_TextChanged(object sender, EventArgs e)
         {
             UpdateTable();
@@ -280,12 +301,19 @@ namespace Beauty
                 if (!db.ClientService.Any(p => p.ServiceID == IdService))
                 {
                     var service = db.Service.Where(p => p.ID == IdService).FirstOrDefault();
-                    foreach (ServicePhoto item in db.ServicePhoto.Where(p=>p.ServiceID == IdService).ToList())
+                    FileInfo f = new FileInfo(Path.Combine(Application.StartupPath, service.MainImagePath));
+                    if (f.Exists) f.Delete();
+                    foreach (ServicePhoto item in db.ServicePhoto.Where(p => p.ServiceID == IdService).ToList())
+                    {
+                        FileInfo file = new FileInfo(Path.Combine(Application.StartupPath, item.PhotoPath));
+                        if (file.Exists) file.Delete();
                         db.ServicePhoto.Remove(item);
+                    }
                     db.Service.Remove(service);
                     db.SaveChanges();
                     UpdateTable();
                     MessageBox.Show("Услуга успешно удалена!");
+
                 }
                 else MessageBox.Show("Невозможно выполнить удаление!\nНа эту услугу записаны клиенты!!!");
             }

@@ -14,9 +14,12 @@ namespace Beauty
     public partial class EditServiceForm : Form
     {
         BeautyEntities db = new BeautyEntities();
+        Random rand = new Random();
         int IdService;
         string NamePhoto = null;
         Service service = new Service();
+        List<TemporaryData> PictureList = new List<TemporaryData>();
+        List<ServicePhoto> OldData;
 
         bool CheckPic = false;
 
@@ -41,25 +44,8 @@ namespace Beauty
             TxtName.Text = service.Title;
             if (!string.IsNullOrEmpty(service.MainImagePath))
                 PicBox.Image = new Bitmap(Path.Combine(Application.StartupPath, service.MainImagePath.Trim()));
-        }
-        public void AddImg()
-        {
-            using (OpenFileDialog f = new OpenFileDialog())
-            {
-                f.Filter = "Jpg|*.jpg|Png|*.png";
-                if(f.ShowDialog() == DialogResult.OK)
-                {
-                    PicBox.Image = new Bitmap(f.FileName);
-                    CheckPic = true;
-                    NamePhoto = f.SafeFileName;
-                }
-            }
-
-        }
-
-        private void AddPhoto_Click(object sender, EventArgs e)
-        {
-            AddImg();
+            LoadDataInList();
+            UpdateTable();
         }
 
         private void BtnEdit_Click(object sender, EventArgs e)
@@ -73,36 +59,140 @@ namespace Beauty
             {
                 if (decimal.TryParse(TxtCost.Text, out Cost) && Cost > 0)
                 {
-                    if (!db.Service.Any(p => p.Title == Title))
-                    {
-                        string path = "";
-                        if (PicBox.Image != null && CheckPic)
-                        {
-                            Random rand = new Random();
-                            NamePhoto = rand.Next(100000).ToString() + NamePhoto;
-                            path = Path.Combine(Application.StartupPath, "Услуги салона красоты",  NamePhoto);
-                            PicBox.Image.Save(path);
-                        }
+                    
                         service.Title = Title;
                         service.Cost = Cost;
                         service.DurationInSeconds = Convert.ToInt32(Duration) * 60;
                         service.Description = Desc;
                         service.Discount = Convert.ToDouble(Discount) / 100;
                         if (CheckPic && !string.IsNullOrEmpty(NamePhoto))
+                        {
                             service.MainImagePath = $"Услуги салона красоты\\{NamePhoto}";
+                        }
+                        foreach (var item in OldData)
+                        {
+                            db.ServicePhoto.Remove(item);
+                        }
+
+                        foreach (TemporaryData item in PictureList)
+                        {
+                            ServicePhoto servicePhoto = new ServicePhoto
+                            {
+                                ServiceID = service.ID,
+                                PhotoPath = "Услуги салона красоты\\" + item.NamePicture
+                            };
+                            string path = Path.Combine(Application.StartupPath, servicePhoto.PhotoPath);
+                            FileInfo fi = new FileInfo(path);
+                            if(!fi.Exists)
+                                item.Picture.Save(path);
+                            db.ServicePhoto.Add(servicePhoto);
+                        }
                         db.SaveChanges();
                         MessageBox.Show("Информация об услуге успешно обновлена!");
                         Refs.clientForm.Close();
                         new ClientForm(true).Show();
                         this.Close();
-                    }
-                    else MessageBox.Show("Услуга с таким наименованием уже существует!");
                 }
                 else MessageBox.Show("Введите корректное значение стоимости! \n В формате 123,34 или 123");
 
 
             }
             else MessageBox.Show("Заполните все поля!");
+        }
+
+        public TemporaryData GetDataTemporary()
+        {
+            var StrName = TablePicture.SelectedRows[0].Cells["NamePicture"].Value.ToString();
+            var item = PictureList.Find(p => p.NamePicture == StrName);
+            return item;
+        }
+
+        public void AddTimeImg()
+        {
+            using (OpenFileDialog file = new OpenFileDialog())
+            {
+                file.Filter = "File JPG|*.jpg|File png|*.png|All file |*.*";
+                if (file.ShowDialog() == DialogResult.OK)
+                {
+                    Size size = new Size(100, 100);
+                    Image img = new Bitmap(file.FileName);
+                    img = new Bitmap(img, size);
+
+                    TemporaryData temporaryData = new TemporaryData
+                    {
+                        NamePicture = rand.Next(10000) + file.SafeFileName,
+                        Picture = img
+                    };
+                    foreach (var item in PictureList)
+                    {
+                        if (item.NamePicture == temporaryData.NamePicture)
+                        {
+                            MessageBox.Show("Картинка с таким именем уже существует!");
+                            return;
+                        }
+                    }
+                    PictureList.Add(temporaryData);
+                }
+            }
+        }
+
+        private void BtnDelPic_Click(object sender, EventArgs e)
+        {
+            if (TablePicture.SelectedRows.Count > 0)
+            {
+                PictureList.Remove(GetDataTemporary());
+                UpdateTable();
+            }
+            else MessageBox.Show("Фотография не выбрана!");
+        }
+
+        public void UpdateTable()
+        {
+            TablePicture.DataSource = PictureList.ToList();
+            TablePicture.Columns["NamePicture"].Visible = false;
+            TablePicture.Columns["Picture"].HeaderText = "Картинка";
+        }
+
+        private void BtnAddPic_Click(object sender, EventArgs e)
+        {
+            AddTimeImg();
+            UpdateTable();
+            
+        }
+
+        private void AddPic_Click(object sender, EventArgs e)
+        {
+            if (TablePicture.SelectedRows.Count > 0)
+            {
+                var item = GetDataTemporary();
+                PicBox.Image = item.Picture;
+                NamePhoto = item.NamePicture;
+                CheckPic = true;
+            }
+            else MessageBox.Show("Фотография не выбрана!");
+        }
+
+        public void LoadDataInList()
+        {
+            OldData = db.ServicePhoto.Where(p => p.ServiceID == IdService).ToList();
+            foreach(var item in OldData)
+            {
+                string str = item.PhotoPath;
+                if (str.Contains("Услуги салона красоты"))
+                {
+                    var index = str.IndexOf("\\")+1;
+                    str = str.Substring(index);
+                }
+                string path = Path.Combine(Application.StartupPath, item.PhotoPath);
+                Image image = new Bitmap(path);
+                image = new Bitmap(image, new Size(100, 100));
+                PictureList.Add(
+                    new TemporaryData
+                    {
+                        NamePicture = str,
+                        Picture = image
+                    });
+            }
         }
     }
 }

@@ -23,16 +23,53 @@ namespace Beauty
         {
             Timer.Enabled = true;
             Timer.Start();
+            TableRecords.Columns.Add("id", "ID");
+            TableRecords.Columns.Add("servname", "Наименование");
+            TableRecords.Columns.Add("firstname", "Имя");
+            TableRecords.Columns.Add("lastname", "Фамилия");
+            TableRecords.Columns.Add("middlename", "Отчество");
+            TableRecords.Columns.Add("date", "Дата");
+            TableRecords.Columns.Add("stay", "Осталось");
+            TableRecords.Columns.Add("email", "Email");
+            TableRecords.Columns.Add("phone", "Телефон");
+            TableRecords.Columns["id"].Visible = false;
             UpdateTable();
         }
 
+        public void WriteTable(IQueryable<dynamic> list)
+        {
+            foreach (var item in list)
+            {
+                var date = item.date;
+                TimeSpan TimeRemaining = date - DateTime.Now;
+                var stay = TimeRemaining.Hours + " ч. " + TimeRemaining.Minutes + " мин.";
+                TableRecords.Rows.Add(item.id, item.servname, item.firstname, item.lastname, item.middlename, item.date, stay, item.email, item.phone);
+            }
+        }
+
+        public void ColorizeTable(IQueryable<dynamic> list)
+        {
+            foreach (var item in list)
+            {
+                TimeSpan time = item.date - DateTime.Now;
+                if (time.Hours < 1)
+                {
+                    foreach (DataGridViewRow row in TableRecords.Rows)
+                    {
+                        if (item.id == Convert.ToInt32(row.Cells["id"].Value))
+                            row.DefaultCellStyle.BackColor = Color.FromArgb(250, 128, 114);
+                    }
+                }
+            }
+        }
 
         public void UpdateTable()
         {
+            TableRecords.Rows.Clear();
             var list = from cls in db.ClientService
                        join cl in db.Client on cls.ClientID equals cl.ID
                        join ser in db.Service on cls.ServiceID equals ser.ID
-                       where cls.StartTime > DateTime.Now && cls.StartTime <= DbFunctions.AddDays(DateTime.Now, 1)
+                       where cls.StartTime >= DateTime.Now && cls.StartTime <= DbFunctions.AddDays(DateTime.Now, 1)
                        orderby cls.StartTime
                        select new
                        {
@@ -42,34 +79,13 @@ namespace Beauty
                           lastname = cl.LastName,
                           middlename = cl.Patronymic,
                           date = cls.StartTime,
-                          stay = (DbFunctions.DiffHours(DateTime.Now,cls.StartTime) - 1).ToString() + " ч. " + (DbFunctions.DiffMinutes(DateTime.Now,cls.StartTime) / DbFunctions.DiffHours(DateTime.Now,cls.StartTime) > 60 ? DbFunctions.DiffMinutes(DateTime.Now,cls.StartTime) / DbFunctions.DiffHours(DateTime.Now,cls.StartTime) - 60 : DbFunctions.DiffMinutes(DateTime.Now,cls.StartTime) / DbFunctions.DiffHours(DateTime.Now,cls.StartTime)).ToString() + " мин.",
+                          stay = "",
                           email = cl.Email,
                           phone = cl.Phone,
                        };
-            TableRecords.DataSource = list.ToList();
-            TableRecords.Columns["id"].Visible = false;
-            TableRecords.Columns["servname"].HeaderText = "Наименование";
-            TableRecords.Columns["firstname"].HeaderText = "Наименование";
-            TableRecords.Columns["lastname"].HeaderText = "Фамилия";
-            TableRecords.Columns["middlename"].HeaderText = "Отчество";
-            TableRecords.Columns["date"].HeaderText = "Дата";
-            TableRecords.Columns["stay"].HeaderText = "Осталось";
-            TableRecords.Columns["email"].HeaderText = "Email";
-            TableRecords.Columns["phone"].HeaderText = "Телефон";
-
-
-            foreach (var item in list)
-            {
-                if (item.date.Subtract(DateTime.Now) <= new TimeSpan(1, 0, 0))
-                {
-                    foreach(DataGridViewRow row in TableRecords.Rows)
-                    {
-                        if (item.id == Convert.ToInt32(row.Cells["id"].Value))
-                            row.DefaultCellStyle.BackColor = Color.FromArgb(250, 128, 114);
-                    }
-                }    
-            }
-                        
+           
+            WriteTable(list);
+            ColorizeTable(list);
         }
 
         private void BtnExit_Click(object sender, EventArgs e)
