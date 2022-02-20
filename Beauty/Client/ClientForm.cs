@@ -99,6 +99,7 @@ namespace Beauty
                 using (FileStream file = new FileStream(ArrPath[i], FileMode.Open))
                 {
                     img = Image.FromStream(file);
+                    file.Dispose();
                 }
                 Size size = new Size(40, 40);
                 list.Add(new Bitmap(img, size));
