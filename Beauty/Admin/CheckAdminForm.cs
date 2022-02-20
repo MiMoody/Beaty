@@ -31,6 +31,7 @@ namespace Beauty
                 new ClientForm(true).Show();
                 this.Close();
             }
+            else MessageBox.Show("Пароль не верный!!!");
         }
     }
 }
