@@ -36,12 +36,15 @@ namespace Beauty
                 {
                     Size size = new Size(100, 100);
                     Image img;
+                    
                     using (FileStream stream = new FileStream(file.FileName, FileMode.Open))
                     {
                         img = Image.FromStream(stream);
                         stream.Dispose();
                     }
                     img = new Bitmap(img, size);
+                    PicBox.Image = img;
+                    NamePhoto = file.FileName;
                     TemporaryData temporaryData = new TemporaryData
                     {
                         NamePicture = rand.Next(10000)+file.SafeFileName,
@@ -58,11 +61,6 @@ namespace Beauty
                     PictureList.Add(temporaryData);
                 }
             }
-        }
-
-        public string getFileExtension(string fileName) // Получение типа фотографии
-        {
-            return fileName.Substring(fileName.LastIndexOf(".") + 1);
         }
 
         private void AddPhoto_Click(object sender, EventArgs e)
