@@ -35,9 +35,13 @@ namespace Beauty
                 if (file.ShowDialog() == DialogResult.OK)
                 {
                     Size size = new Size(100, 100);
-                    Image img = new Bitmap(file.FileName);
+                    Image img;
+                    using (FileStream stream = new FileStream(file.FileName, FileMode.Open))
+                    {
+                        img = Image.FromStream(stream);
+                        stream.Dispose();
+                    }
                     img = new Bitmap(img, size);
-
                     TemporaryData temporaryData = new TemporaryData
                     {
                         NamePicture = rand.Next(10000)+file.SafeFileName,

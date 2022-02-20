@@ -38,12 +38,19 @@ namespace Beauty
         {
             service = db.Service.Where(p => p.ID == IdService).FirstOrDefault();
             TxtCost.Text = service.Cost.ToString();
-            TxtDesc.Text = service.Description == null? "": service.Description ;
+            TxtDesc.Text = service.Description == null ? "" : service.Description;
             TxtDiscount.Value = Convert.ToDecimal(service.Discount) * 100;
             TxtDuration.Value = service.DurationInSeconds / 60;
             TxtName.Text = service.Title;
             if (!string.IsNullOrEmpty(service.MainImagePath))
-                PicBox.Image = new Bitmap(Path.Combine(Application.StartupPath, service.MainImagePath.Trim()));
+            {
+                var path = Path.Combine(Application.StartupPath, service.MainImagePath.Trim());
+                using (FileStream stream = new FileStream(path, FileMode.Open))
+                {
+                    PicBox.Image = Image.FromStream(stream);
+                    stream.Dispose();
+                }
+            }
             LoadDataInList();
             UpdateTable();
         }
@@ -59,39 +66,51 @@ namespace Beauty
             {
                 if (decimal.TryParse(TxtCost.Text, out Cost) && Cost > 0)
                 {
-                    
-                        service.Title = Title;
-                        service.Cost = Cost;
-                        service.DurationInSeconds = Convert.ToInt32(Duration) * 60;
-                        service.Description = Desc;
-                        service.Discount = Convert.ToDouble(Discount) / 100;
-                        if (CheckPic && !string.IsNullOrEmpty(NamePhoto))
+
+                    service.Title = Title;
+                    service.Cost = Cost;
+                    service.DurationInSeconds = Convert.ToInt32(Duration) * 60;
+                    service.Description = Desc;
+                    service.Discount = Convert.ToDouble(Discount) / 100;
+                    if (CheckPic && !string.IsNullOrEmpty(NamePhoto))
+                    {
+                        service.MainImagePath = $"Услуги салона красоты\\{NamePhoto}";
+                    }
+                    foreach (var item in OldData)
+                    {
+                        string path = Path.Combine(Application.StartupPath, item.PhotoPath);
+                        FileInfo fileInfo = new FileInfo(path);
+                        if (PictureList.Count > 0)
                         {
-                            service.MainImagePath = $"Услуги салона красоты\\{NamePhoto}";
-                        }
-                        foreach (var item in OldData)
-                        {
+                            if (fileInfo.Exists) fileInfo.Delete();
                             db.ServicePhoto.Remove(item);
                         }
-
-                        foreach (TemporaryData item in PictureList)
+                        else
                         {
-                            ServicePhoto servicePhoto = new ServicePhoto
-                            {
-                                ServiceID = service.ID,
-                                PhotoPath = "Услуги салона красоты\\" + item.NamePicture
-                            };
-                            string path = Path.Combine(Application.StartupPath, servicePhoto.PhotoPath);
-                            FileInfo fi = new FileInfo(path);
-                            if(!fi.Exists)
-                                item.Picture.Save(path);
-                            db.ServicePhoto.Add(servicePhoto);
+                            if (service.MainImagePath == item.PhotoPath) continue;
+                            if (fileInfo.Exists) fileInfo.Delete();
+                            db.ServicePhoto.Remove(item);
                         }
-                        db.SaveChanges();
-                        MessageBox.Show("Информация об услуге успешно обновлена!");
-                        Refs.clientForm.Close();
-                        new ClientForm(true).Show();
-                        this.Close();
+                    }
+
+                    foreach (TemporaryData item in PictureList)
+                    {
+                        ServicePhoto servicePhoto = new ServicePhoto
+                        {
+                            ServiceID = service.ID,
+                            PhotoPath = "Услуги салона красоты\\" + item.NamePicture
+                        };
+                        string path = Path.Combine(Application.StartupPath, servicePhoto.PhotoPath);
+                        FileInfo fi = new FileInfo(path);
+                        if (!fi.Exists)
+                            item.Picture.Save(path);
+                        db.ServicePhoto.Add(servicePhoto);
+                    }
+                    db.SaveChanges();
+                    MessageBox.Show("Информация об услуге успешно обновлена!");
+                    Refs.clientForm.Close();
+                    new ClientForm(true).Show();
+                    this.Close();
                 }
                 else MessageBox.Show("Введите корректное значение стоимости! \n В формате 123,34 или 123");
 
@@ -115,9 +134,13 @@ namespace Beauty
                 if (file.ShowDialog() == DialogResult.OK)
                 {
                     Size size = new Size(100, 100);
-                    Image img = new Bitmap(file.FileName);
+                    Image img;
+                    using (FileStream stream = new FileStream(file.FileName, FileMode.Open))
+                    {
+                        img = Image.FromStream(stream);
+                        stream.Dispose();
+                    }
                     img = new Bitmap(img, size);
-
                     TemporaryData temporaryData = new TemporaryData
                     {
                         NamePicture = rand.Next(10000) + file.SafeFileName,
@@ -157,7 +180,7 @@ namespace Beauty
         {
             AddTimeImg();
             UpdateTable();
-            
+
         }
 
         private void AddPic_Click(object sender, EventArgs e)
@@ -175,16 +198,21 @@ namespace Beauty
         public void LoadDataInList()
         {
             OldData = db.ServicePhoto.Where(p => p.ServiceID == IdService).ToList();
-            foreach(var item in OldData)
+            foreach (var item in OldData)
             {
                 string str = item.PhotoPath;
                 if (str.Contains("Услуги салона красоты"))
                 {
-                    var index = str.IndexOf("\\")+1;
+                    var index = str.IndexOf("\\") + 1;
                     str = str.Substring(index);
                 }
                 string path = Path.Combine(Application.StartupPath, item.PhotoPath);
-                Image image = new Bitmap(path);
+                Image image;
+                using (FileStream stream = new FileStream(path, FileMode.Open))
+                {
+                    image = Image.FromStream(stream);
+                    stream.Dispose();
+                }
                 image = new Bitmap(image, new Size(100, 100));
                 PictureList.Add(
                     new TemporaryData

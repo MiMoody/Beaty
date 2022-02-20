@@ -95,7 +95,11 @@ namespace Beauty
             int i = 0;
             foreach (DataGridViewRow item in TableService.Rows)
             {
-                Image img = new Bitmap(ArrPath[i]);
+                Image img;
+                using (FileStream file = new FileStream(ArrPath[i], FileMode.Open))
+                {
+                    img = Image.FromStream(file);
+                }
                 Size size = new Size(40, 40);
                 list.Add(new Bitmap(img, size));
                 i++;
