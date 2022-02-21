@@ -44,10 +44,10 @@ namespace Beauty
                     }
                     img = new Bitmap(img, size);
                     PicBox.Image = img;
-                    NamePhoto = file.FileName;
+                    NamePhoto = rand.Next(10000) + file.SafeFileName;
                     TemporaryData temporaryData = new TemporaryData
                     {
-                        NamePicture = rand.Next(10000)+file.SafeFileName,
+                        NamePicture = NamePhoto,
                         Picture = img
                     };
                     foreach (var item in PictureList)
@@ -150,7 +150,9 @@ namespace Beauty
         {
             if(TablePicture.SelectedRows.Count > 0)
             {
-                PictureList.Remove(GetDataTemporary());
+                var item = GetDataTemporary();
+                if (item.NamePicture == NamePhoto) NamePhoto = null;
+                PictureList.Remove(item);
                 UpdateTable();
             }
             else MessageBox.Show("Фотография не выбрана!");

@@ -45,6 +45,13 @@ namespace Beauty
             if (!string.IsNullOrEmpty(service.MainImagePath))
             {
                 var path = Path.Combine(Application.StartupPath, service.MainImagePath.Trim());
+                if (service.MainImagePath.Trim().Contains("Услуги салона красоты"))
+                {
+                    string str = service.MainImagePath.Trim();
+                    var index = str.IndexOf("\\") + 1;
+                    str = str.Substring(index);
+                    NamePhoto = str;
+                }
                 using (FileStream stream = new FileStream(path, FileMode.Open))
                 {
                     PicBox.Image = Image.FromStream(stream);
@@ -62,7 +69,7 @@ namespace Beauty
             decimal Duration = TxtDuration.Value;
             string Desc = TxtDesc.Text;
             decimal Discount = TxtDiscount.Value;
-            if (!string.IsNullOrEmpty(Title) && !string.IsNullOrEmpty(TxtCost.Text))
+            if (!string.IsNullOrEmpty(Title) && !string.IsNullOrEmpty(TxtCost.Text) && !string.IsNullOrEmpty(NamePhoto))
             {
                 if (decimal.TryParse(TxtCost.Text, out Cost) && Cost > 0)
                 {
@@ -141,9 +148,11 @@ namespace Beauty
                         stream.Dispose();
                     }
                     img = new Bitmap(img, size);
+                    PicBox.Image = img;
+                    NamePhoto = rand.Next(10000) + file.SafeFileName;
                     TemporaryData temporaryData = new TemporaryData
                     {
-                        NamePicture = rand.Next(10000) + file.SafeFileName,
+                        NamePicture = NamePhoto,
                         Picture = img
                     };
                     foreach (var item in PictureList)
@@ -163,7 +172,13 @@ namespace Beauty
         {
             if (TablePicture.SelectedRows.Count > 0)
             {
-                PictureList.Remove(GetDataTemporary());
+                var item = GetDataTemporary();
+                if (item.NamePicture == NamePhoto)
+                {
+                    NamePhoto = null;
+                    PicBox.Image = null;
+                }
+                PictureList.Remove(item);
                 UpdateTable();
             }
             else MessageBox.Show("Фотография не выбрана!");
